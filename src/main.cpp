@@ -98,7 +98,7 @@ int convTwosComp(int b) { //Convert from 2's complement
 void init_reg()
 {
   uint8_t resolution = RESOLUTION;
-  uint8_t sleep_mode = SLEEP_MODE;
+  uint8_t sleep_mode = SLEEP_MODE; //desired operating mode
   uint8_t tmp = 0;
 
   uint16_t product_id = 0;
