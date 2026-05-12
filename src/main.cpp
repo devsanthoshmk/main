@@ -14,7 +14,7 @@
 */
 
 #define CLK_Pin 4
-#define SDIO_Pin 8
+#define SDIO_Pin A4
 #define RESOLUTION 0x06
 #define SLEEP_MODE 0xB8 //(default 0xB8) no sleep 0xA0
 #define NOISE_FILTER 0x02
@@ -37,13 +37,29 @@ uint8_t read_reg(uint8_t reg);
 void write_reg(uint8_t reg, uint8_t data);
 void init_reg();
 int convTwosComp(int b);
+uint16_t a4_read_fast();
 
 
 void setup() {
   pinMode(CLK_Pin, OUTPUT);
   digitalWrite(CLK_Pin, HIGH);
+  // no change needed for write only reads should change
   pinMode(SDIO_Pin, OUTPUT);
   digitalWrite(SDIO_Pin, HIGH);
+
+  // enabling adc for analog read
+    // Select A4 once
+  ADMUX = (1 << REFS0) | 4;
+
+    // Enable ADC
+    // Prescaler = 16
+  ADCSRA = 
+  (1 << ADEN) |
+  (1 << ADPS2);
+  // if there is some issue reading high properly then increase this prescaler to 32 for better
+  // (1 << ADEN) |
+  // (1 << ADPS2) |
+  // (1 << ADPS0);
 
   Serial.begin(9600);
   Serial.println();
@@ -208,12 +224,17 @@ uint8_t read_reg(uint8_t reg)
   delayMicroseconds(2);
   pinMode(SDIO_Pin, INPUT);
   delayMicroseconds(1);
-
+  // since we are using analog pin to read the first value might be a noise so..
+  a4_read_fast();
+  delayMicroseconds(5);
+  
   for (int i = 0; i < 8; i++)
   {
     digitalWrite(CLK_Pin, LOW);
-
-    if (digitalRead(SDIO_Pin))
+    // using analog read here to read the value using its volt since lame voltage divider is used
+    int raw = a4_read_fast();
+    float voltage = raw * (5.0 / 1023.0);
+    if (voltage > 1.8)
     {
       data |= (0x01 << (7 - i));
     }
@@ -281,7 +302,13 @@ void write_reg(uint8_t reg, uint8_t data)
   delay(2);
 }
 
+// fast analog sdio pin volt read
 
+uint16_t a4_read_fast()
+{
+  ADCSRA |= (1 << ADSC);
 
+  while (ADCSRA & (1 << ADSC));
 
-
+  return ADC;
+}
