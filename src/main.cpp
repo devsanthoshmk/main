@@ -13,8 +13,8 @@
 
 */
 
-#define CLK_Pin 13
-#define SDIO_Pin 14
+#define CLK_Pin 4
+#define SDIO_Pin 8
 #define RESOLUTION 0x06
 #define SLEEP_MODE 0xB8 //(default 0xB8) no sleep 0xA0
 #define NOISE_FILTER 0x02
@@ -34,6 +34,9 @@
 #define reg_Write_Protect 0x09
 
 uint8_t read_reg(uint8_t reg);
+void write_reg(uint8_t reg, uint8_t data);
+void init_reg();
+int convTwosComp(int b);
 
 
 void setup() {
@@ -78,7 +81,7 @@ void loop() {
     }
   }
   else if (rms > 0xA0) {
-    //Serial.print("Error reserved Pin : ");
+    Serial.print("Error reserved Pin : ");
     //Serial.println(tmp, BIN);
   }
   else if (rms > 0x08) {
