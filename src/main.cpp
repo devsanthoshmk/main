@@ -9,11 +9,11 @@
     You can set the resolution and sleep mode at the beginning. 
     The noise filter is here to avoid small values printing. 
 
-    The code is tested on Teensy 3.2, but it should work on any Arduino platform, just adapt the Pin number and be carrefull of tension level (No 5V!)
+    The code is tested on Arduino nano and no other board testing happend. be carrefull of tension level (No 5V!)
 
 */
 
-#define CLK_Pin 4
+#define CLK_Pin 3
 #define SDIO_Pin A4
 #define RESOLUTION 0x06
 #define SLEEP_MODE 0xB8 //(default 0xB8) no sleep 0xA0
@@ -61,6 +61,10 @@ void setup() {
   // (1 << ADPS2) |
   // (1 << ADPS0);
 
+  // since we are using analog pin to read the first value might be a noise after setting prescaler so..
+  a4_read_fast();
+  delayMicroseconds(5);
+
   Serial.begin(9600);
   Serial.println();
   Serial.println("--------------- START PROGRAM ---------------");
@@ -104,7 +108,7 @@ void loop() {
     Serial.print("Error : ");
     Serial.println(rms, BIN);
   }
-  delay(20);
+  delay(2); // reduced dely loop bettween interval since sensor can handle
 }
 
 int convTwosComp(int b) { //Convert from 2's complement
@@ -221,24 +225,24 @@ uint8_t read_reg(uint8_t reg)
     digitalWrite(CLK_Pin, HIGH);
   }
 
-  delayMicroseconds(2);
+  digitalWrite(SDIO_Pin, LOW); // setting to input mode takes the last set value like if prev write was high then it will enable input_pullup so..
   pinMode(SDIO_Pin, INPUT);
-  delayMicroseconds(1);
-  // since we are using analog pin to read the first value might be a noise so..
-  a4_read_fast();
-  delayMicroseconds(5);
+  delayMicroseconds(3);
   
   for (int i = 0; i < 8; i++)
   {
     digitalWrite(CLK_Pin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(CLK_Pin, HIGH); // setting clk high when reading
+    delayMicroseconds(2);
     // using analog read here to read the value using its volt since lame voltage divider is used
     int raw = a4_read_fast();
-    float voltage = raw * (5.0 / 1023.0);
-    if (voltage > 1.8)
+    // removed unwanted expensive float math
+    // float voltage = raw * (5.0 / 1023.0);
+    if (raw > 368)    // 368 is 1.8v 
     {
       data |= (0x01 << (7 - i));
     }
-    digitalWrite(CLK_Pin, HIGH);
   }
   pinMode(SDIO_Pin, OUTPUT);
   digitalWrite(SDIO_Pin, LOW);
@@ -247,7 +251,7 @@ uint8_t read_reg(uint8_t reg)
   digitalWrite(CLK_Pin, LOW);
   delayMicroseconds(2);
   digitalWrite(CLK_Pin, HIGH);
-  delay(2);
+  delayMicroseconds(20); //reduced it from delay(2) since time is wasted by analog read
 
   return data;
 }
@@ -275,8 +279,8 @@ void write_reg(uint8_t reg, uint8_t data)
     digitalWrite(CLK_Pin, HIGH);
   }
 
-  delayMicroseconds(2);
-  delayMicroseconds(1);
+  // delayMicroseconds(2);
+  // delayMicroseconds(1);  removed since sensor can handle one 16 bit shift without delay
 
   for (int i = 0; i < 8; i++)
   {
@@ -295,11 +299,12 @@ void write_reg(uint8_t reg, uint8_t data)
 
   digitalWrite(SDIO_Pin, LOW);
 
+  // not specified in datasheet dont know why so detele testing uncomment if not working
   // Latch the data for synchronization
-  digitalWrite(CLK_Pin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(CLK_Pin, HIGH);
-  delay(2);
+  // digitalWrite(CLK_Pin, LOW);
+  // delayMicroseconds(2);
+  // digitalWrite(CLK_Pin, HIGH);
+  delayMicroseconds(20); //reduced it from delay(2) since time is wasted by analog read
 }
 
 // fast analog sdio pin volt read
