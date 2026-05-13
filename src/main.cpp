@@ -236,21 +236,20 @@ uint8_t read_reg(uint8_t reg)
     digitalWrite(CLK_Pin, HIGH); // setting clk high when reading
     delayMicroseconds(2);
     // using analog read here to read the value using its volt since lame voltage divider is used
-    int raw = a4_read_fast();
-    // removed unwanted expensive float math
-    // float voltage = raw * (5.0 / 1023.0);
+    int raw = analogRead(SDIO_Pin);
     if (raw > 368)    // 368 is 1.8v 
     {
       data |= (0x01 << (7 - i));
+    }
+    else
+    {
+      Serial.print("Strange value read from SDIO pin : ");
+      Serial.println(raw);
     }
   }
   pinMode(SDIO_Pin, OUTPUT);
   digitalWrite(SDIO_Pin, LOW);
 
-  // Latch the data for synchronization
-  digitalWrite(CLK_Pin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(CLK_Pin, HIGH);
   delayMicroseconds(20); //reduced it from delay(2) since time is wasted by analog read
 
   return data;
